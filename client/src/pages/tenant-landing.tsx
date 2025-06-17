@@ -78,7 +78,7 @@ export default function TenantLanding() {
       comment: "I can track all my payments and lease information in one place. It's incredibly convenient!"
     }
   ];
-
+const IconComponent = features[activeFeature].icon;
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -245,7 +245,7 @@ export default function TenantLanding() {
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 h-96 flex items-center justify-center">
                 <div className="text-center">
                   <div className={`inline-flex p-6 rounded-full ${features[activeFeature].bgColor} mb-4`}>
-                    <features[activeFeature].icon className={`h-12 w-12 ${features[activeFeature].color}`} />
+                    <IconComponent className={`h-12 w-12 ${features[activeFeature].color}`} />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">
                     {features[activeFeature].title}
