@@ -1,0 +1,13 @@
+--- a/client/src/pages/tenant-landing.tsx
++++ b/client/src/pages/tenant-landing.tsx
+@@ const TenantLanding = () => {
++  const IconComponent = features[activeFeature].icon;
+
+   return (
+     <div className="text-center">
+       <div className={`inline-flex p-6 rounded-full ${features[activeFeature].bgColor} mb-4`}>
+-        <features[activeFeature].icon className={`h-12 w-12 ${features[activeFeature].color}`} />
++        <IconComponent className={`h-12 w-12 ${features[activeFeature].color}`} />
+       </div>
+       <h3 className="text-2xl font-bold text-gray-900 mb-2">
+         {features[activeFeature].title}
