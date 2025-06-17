@@ -1,12 +1,24 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { hashPassword } from "./storage";
 import { hashPassword, comparePasswords } from "./storage";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.get("/api/dashboard", async (req, res) => {
+  try {
+    if (!req.isAuthenticated() || req.user.userType !== "landlord") {
+      return res.sendStatus(403);
+    }
+
+    const dashboard = await storage.getDashboardData(req.user.id);
+    res.json(dashboard);
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    res.sendStatus(500);
+  }
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
