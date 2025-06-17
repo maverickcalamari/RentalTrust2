@@ -5,7 +5,6 @@ import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { hashPassword } from "./storage";
 import { hashPassword, comparePasswords } from "./storage";
 declare global {
   namespace Express {
