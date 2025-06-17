@@ -666,7 +666,7 @@ export const storage = new MemStorage();
       type: "service_request",
       isRead: false
     });
-
+  {
     console.log("Seed data created successfully");
   } catch (error) {
     console.error("Error creating seed data:", error);
