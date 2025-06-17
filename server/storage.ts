@@ -7,7 +7,6 @@ import {
   serviceRequests, ServiceRequest, InsertServiceRequest,
   notifications, Notification, InsertNotification
 } from "@shared/schema";
-import { hashPassword, comparePasswords } from "./storage";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import bcrypt from "bcryptjs";
