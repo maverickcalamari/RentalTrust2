@@ -669,8 +669,7 @@ export const storage = new MemStorage();
   (async () => {
   try {
     const landlordPassword = await hashPassword("password");
-  } 
-  catch (error) {
+    } catch (error) {
     console.error("Error creating seed data:", error);
   }
 })();
