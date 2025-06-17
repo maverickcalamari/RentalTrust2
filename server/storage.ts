@@ -674,4 +674,3 @@ export const storage = new MemStorage();
     console.error("Error creating seed data:", error);
   }
 })();
-
