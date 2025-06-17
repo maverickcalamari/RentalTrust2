@@ -11,15 +11,6 @@ declare global {
     interface User extends SelectUser {}
   }
 }
-
-async function hashPassword(password: string) {
-  return await bcrypt.hash(password, 10);
-}
-
-async function comparePasswords(supplied: string, stored: string) {
-  return await bcrypt.compare(supplied, stored);
-}
-
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "rentez-secret-key",
