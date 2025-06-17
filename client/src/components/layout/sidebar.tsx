@@ -10,7 +10,8 @@ import {
   BarChart3, 
   Settings, 
   Bell, 
-  LogOut
+  LogOut,
+  Wrench
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -45,12 +46,16 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
     logoutMutation.mutate();
   };
   
-  const navigationItems = [
-    { name: "Dashboard", href: "/", icon: Home },
+  const navigationItems = user?.userType === "landlord" ? [
+    { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Properties", href: "/properties", icon: Building2 },
     { name: "Tenants", href: "/tenants", icon: Users },
     { name: "Payments", href: "/payments", icon: CreditCard },
+    { name: "Service Requests", href: "/service-requests", icon: Wrench },
     { name: "Reports", href: "/reports", icon: BarChart3 }
+  ] : [
+    { name: "Portal", href: "/tenant-portal", icon: Home },
+    { name: "Service Requests", href: "/service-requests", icon: Wrench },
   ];
   
   const settingsItems = [
@@ -88,10 +93,10 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
       {/* Logo */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center">
-            <Building2 className="h-6 w-6 text-primary" />
+          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+            <Building2 className="h-6 w-6 text-white" />
           </div>
-          <h1 className="ml-2 text-xl font-semibold text-primary">RentEZ</h1>
+          <h1 className="ml-2 text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">RentEZ</h1>
         </div>
       </div>
       
@@ -107,9 +112,9 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
                 <Link href={item.href}>
                   <a 
                     className={cn(
-                      "flex items-center px-3 py-2 text-sm font-medium rounded-md",
+                      "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location === item.href 
-                        ? "bg-primary-50 text-primary-700" 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border-r-2 border-blue-600" 
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     )}
                   >
@@ -132,9 +137,9 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
                 <Link href={item.href}>
                   <a 
                     className={cn(
-                      "flex items-center px-3 py-2 text-sm font-medium rounded-md",
+                      "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location === item.href 
-                        ? "bg-primary-50 text-primary-700" 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border-r-2 border-blue-600" 
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     )}
                   >
@@ -158,7 +163,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
         <div className="flex items-center">
           <Avatar>
             <AvatarImage src="" />
-            <AvatarFallback className="bg-primary-100 text-primary-700">
+            <AvatarFallback className="bg-gradient-to-br from-blue-100 to-purple-100 text-blue-700">
               {getInitials()}
             </AvatarFallback>
           </Avatar>

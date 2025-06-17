@@ -2,9 +2,9 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { Property, InsertProperty, Unit, InsertUnit, Tenant, InsertTenant, Payment, InsertPayment, Notification } from "@shared/schema";
+import { Property, InsertProperty, Unit, InsertUnit, Tenant, InsertTenant, Payment, InsertPayment, ServiceRequest, InsertServiceRequest, Notification } from "@shared/schema";
 import { z } from "zod";
-import { insertPaymentSchema, insertPropertySchema, insertTenantSchema, insertUnitSchema } from "@shared/schema";
+import { insertPaymentSchema, insertPropertySchema, insertTenantSchema, insertUnitSchema, insertServiceRequestSchema } from "@shared/schema";
 
 // Middleware to check if user is authenticated
 const isAuthenticated = (req: Request, res: Response, next: Function) => {
@@ -422,7 +422,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: tenant.userId,
         message: `New payment of $${payment.amount} due on ${new Date(payment.dueDate).toLocaleDateString()}`,
         type: "payment",
-        isRead: false
+        isRead: false,
+        relatedId: payment.id
       });
       
       res.status(201).json(payment);
@@ -468,7 +469,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: tenant.userId,
           message: `Payment status updated to ${req.body.status} for $${payment.amount}`,
           type: "payment",
-          isRead: false
+          isRead: false,
+          relatedId: payment.id
         });
       }
       
@@ -510,7 +512,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: tenant.userId,
         message: `Payment of $${payment.amount} processed successfully`,
         type: "payment",
-        isRead: false
+        isRead: false,
+        relatedId: payment.id
       });
       
       // Notify landlord
@@ -518,12 +521,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: property!.landlordId,
         message: `Payment of $${payment.amount} received from tenant`,
         type: "payment",
-        isRead: false
+        isRead: false,
+        relatedId: payment.id
       });
       
       res.json(updatedPayment);
     } catch (error) {
       res.status(500).json({ message: "Failed to process payment" });
+    }
+  });
+
+  // SERVICE REQUEST ROUTES
+  // Get service requests
+  app.get("/api/service-requests", isAuthenticated, async (req, res) => {
+    try {
+      let serviceRequests;
+      
+      if (req.user!.userType === "landlord") {
+        serviceRequests = await storage.getServiceRequestsByLandlord(req.user!.id);
+      } else {
+        // For tenants, get their own service requests
+        const tenant = await storage.getTenantByUserId(req.user!.id);
+        
+        if (!tenant) {
+          return res.status(404).json({ message: "Tenant profile not found" });
+        }
+        
+        serviceRequests = await storage.getServiceRequestsByTenant(tenant.id);
+      }
+      
+      res.json(serviceRequests);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch service requests" });
+    }
+  });
+
+  // Create a new service request (tenants only)
+  app.post("/api/service-requests", isTenant, async (req, res) => {
+    try {
+      const tenant = await storage.getTenantByUserId(req.user!.id);
+      
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant profile not found" });
+      }
+      
+      const serviceRequestData = insertServiceRequestSchema.parse({
+        ...req.body,
+        tenantId: tenant.id,
+        status: "open"
+      });
+      
+      const serviceRequest = await storage.createServiceRequest(serviceRequestData);
+      
+      // Get landlord info for notification
+      const unit = await storage.getUnit(tenant.unitId);
+      const property = await storage.getProperty(unit!.propertyId);
+      
+      // Create a notification for the landlord
+      await storage.createNotification({
+        userId: property!.landlordId,
+        message: `New ${serviceRequest.priority} priority service request: ${serviceRequest.title}`,
+        type: "service_request",
+        isRead: false,
+        relatedId: serviceRequest.id
+      });
+      
+      res.status(201).json(serviceRequest);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid service request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create service request" });
+    }
+  });
+
+  // Update a service request (landlords only)
+  app.put("/api/service-requests/:id", isLandlord, async (req, res) => {
+    try {
+      const serviceRequestId = parseInt(req.params.id);
+      const serviceRequest = await storage.getServiceRequest(serviceRequestId);
+      
+      if (!serviceRequest) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      // Check if landlord has access to this service request
+      const tenant = await storage.getTenant(serviceRequest.tenantId);
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+      
+      const unit = await storage.getUnit(tenant.unitId);
+      if (!unit) {
+        return res.status(404).json({ message: "Unit not found" });
+      }
+      
+      const property = await storage.getProperty(unit.propertyId);
+      if (!property || property.landlordId !== req.user!.id) {
+        return res.status(403).json({ message: "You don't have access to this service request" });
+      }
+      
+      const updatedServiceRequest = await storage.updateServiceRequest(serviceRequestId, req.body);
+      
+      // Create a notification for the tenant if status changed
+      if (req.body.status && req.body.status !== serviceRequest.status) {
+        await storage.createNotification({
+          userId: tenant.userId,
+          message: `Service request "${serviceRequest.title}" status updated to ${req.body.status}`,
+          type: "service_request",
+          isRead: false,
+          relatedId: serviceRequest.id
+        });
+      }
+      
+      res.json(updatedServiceRequest);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update service request" });
     }
   });
 

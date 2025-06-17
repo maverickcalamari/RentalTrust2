@@ -32,7 +32,7 @@ export function ProtectedRoute({
   }
   
   // Handle user type checks for specific routes
-  if (user.userType === "tenant" && !location.includes("tenant-portal")) {
+  if (user.userType === "tenant" && !location.includes("tenant-portal") && !location.includes("service-requests")) {
     return (
       <Route path={path}>
         <Redirect to="/tenant-portal" />
@@ -43,7 +43,7 @@ export function ProtectedRoute({
   if (user.userType === "landlord" && location.includes("tenant-portal")) {
     return (
       <Route path={path}>
-        <Redirect to="/" />
+        <Redirect to="/dashboard" />
       </Route>
     );
   }

@@ -68,13 +68,33 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Service Requests Table
+export const serviceRequests = pgTable("service_requests", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // "plumbing", "electrical", "hvac", "appliance", "other"
+  priority: text("priority").notNull(), // "low", "medium", "high", "urgent"
+  status: text("status").notNull().default("open"), // "open", "in_progress", "completed", "cancelled"
+  requestedDate: timestamp("requested_date").notNull(),
+  scheduledDate: timestamp("scheduled_date"),
+  completedDate: timestamp("completed_date"),
+  assignedTo: text("assigned_to"),
+  estimatedCost: numeric("estimated_cost"),
+  actualCost: numeric("actual_cost"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Notifications Table
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   message: text("message").notNull(),
-  type: text("type").notNull(), // "payment", "lease", "maintenance", etc.
+  type: text("type").notNull(), // "payment", "lease", "maintenance", "service_request", etc.
   isRead: boolean("is_read").default(false).notNull(),
+  relatedId: integer("related_id"), // ID of related entity (payment, service request, etc.)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -104,6 +124,11 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   createdAt: true 
 });
 
+export const insertServiceRequestSchema = createInsertSchema(serviceRequests).omit({ 
+  id: true,
+  createdAt: true 
+});
+
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ 
   id: true,
   createdAt: true 
@@ -124,6 +149,9 @@ export type InsertTenant = z.infer<typeof insertTenantSchema>;
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type InsertServiceRequest = z.infer<typeof insertServiceRequestSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;

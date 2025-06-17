@@ -4,6 +4,7 @@ import {
   units, Unit, InsertUnit,
   tenants, Tenant, InsertTenant,
   payments, Payment, InsertPayment,
+  serviceRequests, ServiceRequest, InsertServiceRequest,
   notifications, Notification, InsertNotification
 } from "@shared/schema";
 import session from "express-session";
@@ -47,6 +48,14 @@ export interface IStorage {
   updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined>;
   deletePayment(id: number): Promise<boolean>;
   
+  // Service Request operations
+  getServiceRequest(id: number): Promise<ServiceRequest | undefined>;
+  getServiceRequestsByTenant(tenantId: number): Promise<ServiceRequest[]>;
+  getServiceRequestsByLandlord(landlordId: number): Promise<Array<ServiceRequest & { tenant: Tenant & { user: User, unit: Unit & { property: Property } } }>>;
+  createServiceRequest(serviceRequest: InsertServiceRequest): Promise<ServiceRequest>;
+  updateServiceRequest(id: number, serviceRequest: Partial<InsertServiceRequest>): Promise<ServiceRequest | undefined>;
+  deleteServiceRequest(id: number): Promise<boolean>;
+  
   // Notification operations
   getNotification(id: number): Promise<Notification | undefined>;
   getNotificationsByUser(userId: number): Promise<Notification[]>;
@@ -75,6 +84,7 @@ export class MemStorage implements IStorage {
   private unitMap: Map<number, Unit>;
   private tenantMap: Map<number, Tenant>;
   private paymentMap: Map<number, Payment>;
+  private serviceRequestMap: Map<number, ServiceRequest>;
   private notificationMap: Map<number, Notification>;
   currentId: { [key: string]: number };
   sessionStore: session.SessionStore;
@@ -85,6 +95,7 @@ export class MemStorage implements IStorage {
     this.unitMap = new Map();
     this.tenantMap = new Map();
     this.paymentMap = new Map();
+    this.serviceRequestMap = new Map();
     this.notificationMap = new Map();
     
     this.currentId = {
@@ -93,6 +104,7 @@ export class MemStorage implements IStorage {
       unit: 1,
       tenant: 1,
       payment: 1,
+      serviceRequest: 1,
       notification: 1
     };
     
@@ -339,6 +351,56 @@ export class MemStorage implements IStorage {
     return this.paymentMap.delete(id);
   }
   
+  // Service Request operations
+  async getServiceRequest(id: number): Promise<ServiceRequest | undefined> {
+    return this.serviceRequestMap.get(id);
+  }
+  
+  async getServiceRequestsByTenant(tenantId: number): Promise<ServiceRequest[]> {
+    return Array.from(this.serviceRequestMap.values()).filter(
+      request => request.tenantId === tenantId
+    );
+  }
+  
+  async getServiceRequestsByLandlord(landlordId: number): Promise<Array<ServiceRequest & { tenant: Tenant & { user: User, unit: Unit & { property: Property } } }>> {
+    const tenants = await this.getTenantsByLandlord(landlordId);
+    const tenantIds = tenants.map(t => t.id);
+    
+    const serviceRequests = Array.from(this.serviceRequestMap.values()).filter(
+      request => tenantIds.includes(request.tenantId)
+    );
+    
+    return serviceRequests.map(request => {
+      const tenant = tenants.find(t => t.id === request.tenantId)!;
+      
+      return {
+        ...request,
+        tenant
+      };
+    });
+  }
+  
+  async createServiceRequest(insertServiceRequest: InsertServiceRequest): Promise<ServiceRequest> {
+    const id = this.currentId.serviceRequest++;
+    const now = new Date();
+    const serviceRequest: ServiceRequest = { ...insertServiceRequest, id, createdAt: now };
+    this.serviceRequestMap.set(id, serviceRequest);
+    return serviceRequest;
+  }
+  
+  async updateServiceRequest(id: number, serviceRequestData: Partial<InsertServiceRequest>): Promise<ServiceRequest | undefined> {
+    const serviceRequest = this.serviceRequestMap.get(id);
+    if (!serviceRequest) return undefined;
+    
+    const updatedServiceRequest = { ...serviceRequest, ...serviceRequestData };
+    this.serviceRequestMap.set(id, updatedServiceRequest);
+    return updatedServiceRequest;
+  }
+  
+  async deleteServiceRequest(id: number): Promise<boolean> {
+    return this.serviceRequestMap.delete(id);
+  }
+  
   // Notification operations
   async getNotification(id: number): Promise<Notification | undefined> {
     return this.notificationMap.get(id);
@@ -571,11 +633,40 @@ export const storage = new MemStorage();
       paymentMethod: null
     });
 
+    // Create service requests
+    await storage.createServiceRequest({
+      tenantId: tenantRecord.id,
+      title: "Kitchen faucet leaking",
+      description: "The kitchen faucet has been dripping constantly for the past week. It's getting worse and wasting water.",
+      category: "plumbing",
+      priority: "medium",
+      status: "open",
+      requestedDate: new Date()
+    });
+
+    await storage.createServiceRequest({
+      tenantId: tenantRecord.id,
+      title: "Air conditioning not working",
+      description: "The AC unit stopped working yesterday. It's getting very hot in the apartment.",
+      category: "hvac",
+      priority: "high",
+      status: "in_progress",
+      requestedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    });
+
     // Create notifications
     await storage.createNotification({
       userId: tenant.id,
       message: "Your rent payment is due tomorrow",
       type: "payment",
+      isRead: false
+    });
+
+    await storage.createNotification({
+      userId: landlord.id,
+      message: "New service request: Kitchen faucet leaking",
+      type: "service_request",
       isRead: false
     });
 
