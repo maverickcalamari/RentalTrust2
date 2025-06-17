@@ -532,19 +532,15 @@ export const storage = new MemStorage();
 
 // Add seed data for testing
 (async () => {
-  try {
-    // Import the authentication utilities
-    const { scrypt, randomBytes } = await import('crypto');
-    const { promisify } = await import('util');
-    
+  try { 
     // Implementation of hashPassword function
-    const scryptAsync = promisify(scrypt);
-    const hashPassword = async (password: string) => {
-      const salt = randomBytes(16).toString("hex");
-      const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-      return `${buf.toString("hex")}.${salt}`;
-    };
-    
+    export async function hashPassword(password: string) {
+  return await bcrypt.hash(password, 10);
+}
+
+export async function comparePasswords(supplied: string, stored: string) {
+  return await bcrypt.compare(supplied, stored);
+}  
     // Create a landlord user
     const landlordPassword = await hashPassword("password");
     const landlord = await storage.createUser({
