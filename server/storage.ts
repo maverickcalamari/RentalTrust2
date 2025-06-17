@@ -666,10 +666,3 @@ export const storage = new MemStorage();
       type: "service_request",
       isRead: false
     });
-  (async () => {
-  try {
-    const landlordPassword = await hashPassword("password");
-    } catch (error) {
-    console.error("Error creating seed data:", error);
-  }
-})();
