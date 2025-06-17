@@ -666,3 +666,5 @@ export const storage = new MemStorage();
       type: "service_request",
       isRead: false
     });
+    // End of async IIFE
+})();
