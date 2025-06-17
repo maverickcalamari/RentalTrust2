@@ -533,15 +533,6 @@ export const storage = new MemStorage();
 
 // Add seed data for testing
 (async () => {
-  try { 
-    // Implementation of hashPassword function
-    export async function hashPassword(password: string) {
-  return await bcrypt.hash(password, 10);
-}
-
-export async function comparePasswords(supplied: string, stored: string) {
-  return await bcrypt.compare(supplied, stored);
-}  
     // Create a landlord user
     const landlordPassword = await hashPassword("password");
     const landlord = await storage.createUser({
