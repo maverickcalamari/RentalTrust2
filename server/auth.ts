@@ -28,18 +28,25 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false, { message: "Invalid username or password" });
+ passport.use(
+  new LocalStrategy(async (username, password, done) => {
+    console.log("LOGIN ATTEMPT:", username); // 👈 log who is trying to log in
 
-      } else {
-        return done(null, user);
-      }
-    }),
-  );
+    const user = await storage.getUserByUsername(username);
+    if (!user) {
+      console.log("USER NOT FOUND");
+      return done(null, false);
+    }
 
+    const isMatch = await comparePasswords(password, user.password);
+    if (!isMatch) {
+      console.log("PASSWORD MISMATCH");
+      return done(null, false);
+    }
+
+    return done(null, user);
+  })
+);
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     const user = await storage.getUser(id);
