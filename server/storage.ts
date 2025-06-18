@@ -133,11 +133,16 @@ export class MemStorage implements IStorage {
     return this.userMap.get(id);
   }
   
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.userMap.values()).find(
-      (user) => user.username === username,
-    );
-  }
+  import { UserModel } from "./models/User";
+
+async getUserByUsername(username: string): Promise<User | undefined> {
+  return await UserModel.findOne({ username }).lean();
+}
+
+async createUser(user: InsertUser): Promise<User> {
+  const created = await UserModel.create(user);
+  return created.toObject();
+}
   
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId.user++;
