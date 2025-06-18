@@ -1,16 +1,4 @@
-// server/storage.ts (MongoDB-based version)
-import mongoose from "mongoose";
-import session from "express-session";
-import connectMongo from "connect-mongo";
 import bcrypt from "bcryptjs";
-
-import { UserModel } from "./models/User";
-import { PropertyModel } from "./models/Property";
-import { UnitModel } from "./models/Unit";
-import { TenantModel } from "./models/Tenant";
-import { PaymentModel } from "./models/Payment";
-import { ServiceRequestModel } from "./models/ServiceRequest";
-import { NotificationModel } from "./models/Notification";
 
 export async function hashPassword(password: string) {
   return await bcrypt.hash(password, 10);
@@ -20,60 +8,51 @@ export async function comparePasswords(supplied: string, stored: string) {
   return await bcrypt.compare(supplied, stored);
 }
 
-const MongoStore = connectMongo(session);
-
-mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/rentaltrust")
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch(err => console.error("❌ MongoDB connection error:", err));
-
+// Mock in-memory storage as a placeholder
 export const storage = {
-  sessionStore: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI || "mongodb://localhost:27017/rentaltrust",
-    collectionName: "sessions"
-  }),
+  users: [],
+  properties: [],
+  tenants: [],
+  units: [],
+  payments: [],
 
-  // User operations
-  async getUser(id: string) {
-    return await UserModel.findById(id).lean();
+  async getUser(id) {
+    return this.users.find(u => u.id === id) || null;
   },
 
-  async getUserByUsername(username: string) {
-    return await UserModel.findOne({ username }).lean();
+  async getUserByUsername(username) {
+    return this.users.find(u => u.username === username) || null;
   },
 
   async createUser(userData) {
-    const user = new UserModel(userData);
-    await user.save();
-    return user.toObject();
+    const newUser = { ...userData, id: String(this.users.length + 1) };
+    this.users.push(newUser);
+    return newUser;
   },
 
-  // Property operations
-  async getProperty(id: string) {
-    return await PropertyModel.findById(id).lean();
+  async getProperty(id) {
+    return this.properties.find(p => p.id === id) || null;
   },
 
-  async getPropertiesByLandlord(landlordId: string) {
-    return await PropertyModel.find({ landlordId }).lean();
+  async getPropertiesByLandlord(landlordId) {
+    return this.properties.filter(p => p.landlordId === landlordId);
   },
 
   async createProperty(data) {
-    const doc = await PropertyModel.create(data);
-    return doc.toObject();
+    const newProp = { ...data, id: String(this.properties.length + 1) };
+    this.properties.push(newProp);
+    return newProp;
   },
 
-  // ... repeat this pattern for create/update/delete for Units, Tenants, Payments, ServiceRequests, Notifications
-
-  // Tenant portal
-  async getTenantByUserId(userId: string) {
-    return await TenantModel.findOne({ userId }).populate("unit").lean();
+  async getTenantByUserId(userId) {
+    return this.tenants.find(t => t.userId === userId) || null;
   },
 
-  async getDashboardData(landlordId: string) {
-    const properties = await PropertyModel.find({ landlordId }).lean();
-    const units = await UnitModel.find({ propertyId: { $in: properties.map(p => p._id) } }).lean();
-    const tenants = await TenantModel.find({ unitId: { $in: units.map(u => u._id) } }).lean();
-    const tenantIds = tenants.map(t => t._id);
-    const payments = await PaymentModel.find({ tenantId: { $in: tenantIds } }).lean();
+  async getDashboardData(landlordId) {
+    const properties = this.properties.filter(p => p.landlordId === landlordId);
+    const units = this.units.filter(u => properties.map(p => p.id).includes(u.propertyId));
+    const tenants = this.tenants.filter(t => units.map(u => u.id).includes(t.unitId));
+    const payments = this.payments.filter(p => tenants.map(t => t.id).includes(p.tenantId));
 
     const now = new Date();
     const upcomingPayments = payments.filter(p => p.status === "pending" && new Date(p.dueDate) > now);
@@ -86,7 +65,7 @@ export const storage = {
       overduePaymentsTotal: overduePayments.reduce((sum, p) => sum + Number(p.amount), 0),
       properties,
       tenantActivity: payments.slice(0, 10),
-      monthlyIncome: [] // left as an exercise to implement monthly grouping
+      monthlyIncome: []
     };
   }
 };
