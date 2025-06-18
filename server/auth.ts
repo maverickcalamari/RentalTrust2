@@ -11,6 +11,7 @@ declare global {
     interface User extends SelectUser {}
   }
 }
+console.log("ALL USERS:", Array.from(storage.userMap.values()));
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "rentez-secret-key",
